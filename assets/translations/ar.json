@@ -6,6 +6,13 @@
   "pdfreader": "Pdf قارئ",
   "switch_language": "اللغة",
   "logout": "تسجيل خروج",
-  "connectivity": "الاتصال "
+  "connectivity": "الاتصال ",
+  "account_info": "معلومات الحساب",
+  "name": "الاسم",
+  "phone": "رقم الهاتف",
+  "edit": "تعديل",
+  "save": "حفظ",
+  "cancel": "إلغاء",
+  "new_value": "أدخل {field} الجديد"
 
 }

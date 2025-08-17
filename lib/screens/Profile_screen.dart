@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -12,7 +13,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String phoneNumber = '+962788048682';
 
   Future<void> _editField(
-      String title, String currentValue, Function(String) onSave) async {
+      String fieldKey, String currentValue, Function(String) onSave) async {
     final controller = TextEditingController(text: currentValue);
 
     final result = await showDialog<String>(
@@ -20,26 +21,28 @@ class _ProfilePageState extends State<ProfilePage> {
       builder: (context) {
         return AlertDialog(
           backgroundColor:
-              Theme.of(context).colorScheme.surface.withOpacity(0.9),
-          title: Text('تعديل $title',
-              style: Theme.of(context).textTheme.titleLarge),
+          Theme.of(context).colorScheme.surface.withOpacity(0.9),
+          title: Text(
+            '${'edit'.tr()} ${fieldKey.tr()}',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           content: TextField(
             controller: controller,
-            textDirection: TextDirection.rtl,
+            textDirection: Directionality.of(context),
             style: Theme.of(context).textTheme.bodyLarge,
             decoration: InputDecoration(
               border: OutlineInputBorder(),
-              hintText: 'أدخل $title الجديد',
+              hintText: tr('new_value', args: [fieldKey.tr()]),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('إلغاء'),
+              child: Text('cancel'.tr()),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, controller.text),
-              child: const Text('حفظ'),
+              child: Text('save'.tr()),
             ),
           ],
         );
@@ -69,7 +72,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const Spacer(),
                   Text(
-                    'معلومات الحساب',
+                    'account_info'.tr(),
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const Spacer(flex: 2),
@@ -78,18 +81,18 @@ class _ProfilePageState extends State<ProfilePage> {
               const SizedBox(height: 120),
 
               _buildInfoField(
-                label: 'الاسم',
+                label: 'name',
                 value: userName,
                 onEdit: () =>
-                    _editField('الاسم', userName, (val) => userName = val),
+                    _editField('name', userName, (val) => userName = val),
               ),
               const SizedBox(height: 30),
 
               _buildInfoField(
-                label: 'رقم الهاتف',
+                label: 'phone',
                 value: phoneNumber,
-                onEdit: () => _editField(
-                    'رقم الهاتف', phoneNumber, (val) => phoneNumber = val),
+                onEdit: () =>
+                    _editField('phone', phoneNumber, (val) => phoneNumber = val),
               ),
             ],
           ),
@@ -110,7 +113,7 @@ class _ProfilePageState extends State<ProfilePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                label,
+                label.tr(),
                 style: const TextStyle(fontSize: 15, color: Colors.white),
               ),
               const SizedBox(height: 5),

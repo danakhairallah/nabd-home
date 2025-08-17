@@ -6,7 +6,7 @@ class Connectivity extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
         child: Text(
-      tr('profile'),
+      tr('connectivity'),
       style: const TextStyle(fontSize: 24),
     ));
   }

@@ -21,7 +21,7 @@ class _ProfilePageState extends State<ProfilePage> {
       builder: (context) {
         return AlertDialog(
           backgroundColor:
-          Theme.of(context).colorScheme.surface.withOpacity(0.9),
+              Theme.of(context).colorScheme.surface.withOpacity(0.9),
           title: Text(
             '${'edit'.tr()} ${fieldKey.tr()}',
             style: Theme.of(context).textTheme.titleLarge,
@@ -71,15 +71,18 @@ class _ProfilePageState extends State<ProfilePage> {
                     onPressed: () => Navigator.pop(context),
                   ),
                   const Spacer(),
-                  Text(
-                    'account_info'.tr(),
-                    style: Theme.of(context).textTheme.titleLarge,
+                  Semantics(
+                    header: true,
+                    label: 'account_info'.tr(),
+                    child: Text(
+                      'account_info'.tr(),
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
                   ),
                   const Spacer(flex: 2),
                 ],
               ),
               const SizedBox(height: 120),
-
               _buildInfoField(
                 label: 'name',
                 value: userName,
@@ -87,12 +90,11 @@ class _ProfilePageState extends State<ProfilePage> {
                     _editField('name', userName, (val) => userName = val),
               ),
               const SizedBox(height: 30),
-
               _buildInfoField(
                 label: 'phone',
                 value: phoneNumber,
-                onEdit: () =>
-                    _editField('phone', phoneNumber, (val) => phoneNumber = val),
+                onEdit: () => _editField(
+                    'phone', phoneNumber, (val) => phoneNumber = val),
               ),
             ],
           ),
@@ -112,9 +114,13 @@ class _ProfilePageState extends State<ProfilePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                label.tr(),
-                style: const TextStyle(fontSize: 15, color: Colors.white),
+              Semantics(
+                label: '${label.tr()}: $value',
+                excludeSemantics: false,
+                child: Text(
+                  label.tr(),
+                  style: const TextStyle(fontSize: 15, color: Colors.white),
+                ),
               ),
               const SizedBox(height: 5),
               Text(

@@ -1,12 +1,15 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
 import '../core/theme/app_theme.dart';
 import '../cubit/navigation/navigation_cubit.dart';
 import '../cubit/navigation/navigation_state.dart';
+import 'Profile_screen.dart';
 import 'connectivity_screen.dart';
 import 'history_screen.dart';
 import 'home_screen.dart';
@@ -33,11 +36,10 @@ class _MainScreenState extends State<MainScreen> {
   bool _isListening = false;
 
   StreamSubscription? _accelSubscription;
-  double? _lastX, _lastY, _lastZ;
   int _shakeCount = 0;
-  DateTime? _firstShakeTime;
-  static const int shakeTimeoutMs = 3000;
-  static const double shakeSensitivity = 15;
+  DateTime? _lastShakeTime;
+  final double shakeThreshold = 2.0;
+  final int shakeIntervalMs = 700;
 
   Timer? _silenceTimer;
 
@@ -45,12 +47,15 @@ class _MainScreenState extends State<MainScreen> {
   int _listeningDurationSec = 0;
   String _micStatusMsg = "";
 
+  int? _lastAnnouncedIndex;
+
   @override
   void initState() {
     super.initState();
 
     _sttService.initialize(
       onResult: (text) {
+        print("أمر صوتي مكتشف: $text");
         setState(() => _lastCommand = text);
         _startSilenceTimer();
       },
@@ -62,59 +67,34 @@ class _MainScreenState extends State<MainScreen> {
               ? DateTime.now().difference(_listeningStartTime!).inSeconds
               : 0;
           _micStatusMsg =
-          "⏹️ تم إيقاف المايك بعد $_listeningDurationSec ثانية (انتهاء الجلسة)";
+              "⏹️ تم إيقاف المايك بعد $_listeningDurationSec ثانية (انتهاء الجلسة)";
         });
         _silenceTimer?.cancel();
         _handleVoiceCommand(text);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              "⏹️ تم إيقاف المايك بعد $_listeningDurationSec ثانية (انتهاء الجلسة)",
-            ),
-            duration: Duration(seconds: 3),
-          ),
-        );
       },
     );
 
     _accelSubscription = accelerometerEvents.listen(_handleAccelerometer);
   }
 
-  void _handleAccelerometer(AccelerometerEvent event) async {
-    final double x = event.x;
-    final double y = event.y;
-    final double z = event.z;
+  void _handleAccelerometer(AccelerometerEvent event) {
+    double gX = event.x / 9.8;
+    double gY = event.y / 9.8;
+    double gZ = event.z / 9.8;
+    double gForce = sqrt(gX * gX + gY * gY + gZ * gZ);
 
-    if (_lastX != null && _lastY != null && _lastZ != null) {
-      double deltaX = (x - _lastX!).abs();
-      double deltaY = (y - _lastY!).abs();
-      double deltaZ = (z - _lastZ!).abs();
-
-      double shake = deltaX + deltaY + deltaZ;
-
-      if (shake > shakeSensitivity) {
-        final now = DateTime.now();
-        if (_firstShakeTime == null ||
-            now.difference(_firstShakeTime!) > Duration(milliseconds: shakeTimeoutMs)) {
-          _firstShakeTime = now;
-          _shakeCount = 1;
-        } else {
-          _shakeCount++;
-          if (_shakeCount >= 2) {
-            _startListeningWithTimer();
-            _shakeCount = 0;
-            _firstShakeTime = null;
-          }
-        }
-      }
+    if (gForce > shakeThreshold) {
+      _startListeningWithTimer();
+      _lastShakeTime = DateTime.now();
     }
-    _lastX = x;
-    _lastY = y;
-    _lastZ = z;
   }
 
   void _startListeningWithTimer() async {
+    FocusScope.of(context).unfocus();
+
+    // HapticFeedback.vibrate();
+
+    print("🎤 تم تشغيل المايك للاستماع");
     setState(() {
       _isListening = true;
       _lastCommand = "";
@@ -134,6 +114,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _stopListeningDueToSilence() async {
+    print("⏹️ تم إيقاف المايك بسبب الصمت (${_listeningDurationSec} ثانية)");
     await _sttService.stopListening();
     setState(() {
       _isListening = false;
@@ -141,16 +122,8 @@ class _MainScreenState extends State<MainScreen> {
           ? DateTime.now().difference(_listeningStartTime!).inSeconds
           : 0;
       _micStatusMsg =
-      "⏹️ تم إيقاف المايك بعد $_listeningDurationSec ثانية بسبب الصمت";
+          "⏹️ تم إيقاف المايك بعد $_listeningDurationSec ثانية بسبب الصمت";
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          "⏹️ تم إيقاف المايك بعد $_listeningDurationSec ثانية بسبب الصمت",
-        ),
-        duration: Duration(seconds: 3),
-      ),
-    );
   }
 
   @override
@@ -162,10 +135,34 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _handleVoiceCommand(String text) {
+    print("جارٍ تحليل الأمر الصوتي: $text");
+
     final textLower = text.toLowerCase().trim();
+    final profileCommands = [
+      "الملف الشخصي",
+      "الحساب",
+      "بروفايل",
+      "profile",
+      "account",
+      "أدخل على الحساب",
+      "افتح حسابي"
+    ];
+
+    for (final key in profileCommands) {
+      if (textLower.contains(key)) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => ProfilePage()),
+        );
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _announcePage("تم فتح الملف الشخصي");
+        });
+        return;
+      }
+    }
 
     final commands = {
-      0: ["الرئيسية", "home", "هوم", "الصفحة الرئيسية"],
+      0: ["الرئيسية", "home", "الصفحة الرئيسية"],
       1: ["القارئ", "reader", "pdf", "قراءة", "بي دي اف"],
       2: ["السجل", "history", "هيستوري", "سجل"],
       3: ["الاتصال", "connectivity", "كونكت", "كونكتيفيتي", "الاتصالات"],
@@ -176,61 +173,104 @@ class _MainScreenState extends State<MainScreen> {
       for (final key in entry.value) {
         if (textLower.contains(key)) {
           context.read<NavigationCubit>().changePage(entry.key);
+          Future.delayed(const Duration(milliseconds: 200), () {
+            String pageTitle = _getPageTitle(entry.key);
+            _announcePage("أنت الآن في صفحة $pageTitle");
+          });
           return;
         }
       }
     }
+  }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("لم يتم التعرف على أمر تنقل!")),
+  Future<void> _announcePage(String pageName) async {
+    Semantics(
+      child: Text(pageName),
+      label: pageName,
+      excludeSemantics: false,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: AppTheme.mainGradient,
-      ),
-      child: BlocBuilder<NavigationCubit, NavigationState>(
-        builder: (context, state) {
-          return Scaffold(
-            backgroundColor: Colors.transparent,
-            body: Stack(
-              children: [
-                screens[state.index],
-                if (_isListening)
-                  Positioned(
-                    left: 0, right: 0, bottom: 100,
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                if (_lastCommand.isNotEmpty)
-                  Positioned(
-                    left: 0, right: 0, bottom: 94,
-                    child: Center(child: Text(
-                      "الأمر الصوتي: $_lastCommand",
-                      style: TextStyle(fontSize: 16, color: Colors.black),
-                    )),
-                  ),
-                if (_micStatusMsg.isNotEmpty)
-                  Positioned(
-                    left: 0, right: 0, bottom: 170,
-                    child: Center(child: Text(
-                      _micStatusMsg,
-                      style: TextStyle(fontSize: 18, color: Colors.red, fontWeight: FontWeight.bold),
-                    )),
-                  ),
-              ],
-            ),
-            bottomNavigationBar: _buildCustomNavBar(context, state.index),
-            floatingActionButton: FloatingActionButton(
-              heroTag: "stt_fab",
-              onPressed: _startListeningWithTimer,
-              child: Icon(Icons.mic),
-              tooltip: "فعّل التنقل الصوتي",
-            ),
-          );
+    return ExcludeSemantics(
+      excluding: _isListening,
+      child: GestureDetector(
+        onTap: () {
+          if (_isListening) {
+            _stopListeningDueToSilence();
+          }
         },
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: AppTheme.mainGradient,
+          ),
+          child: BlocBuilder<NavigationCubit, NavigationState>(
+            builder: (context, state) {
+              if (_lastAnnouncedIndex != state.index) {
+                _lastAnnouncedIndex = state.index;
+                Future.delayed(const Duration(milliseconds: 200), () {
+                  String pageTitle = _getPageTitle(state.index);
+                  _announcePage(pageTitle);
+                });
+              }
+              return Stack(
+                children: [
+                  Scaffold(
+                    backgroundColor: Colors.transparent,
+                    body: screens[state.index],
+                  ),
+                  if (_isListening)
+                    ModalBarrier(
+                      dismissible: false,
+                      color: Colors.black.withOpacity(0.01),
+                    ),
+                  if (_isListening)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 100,
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: IgnorePointer(
+                      ignoring: _isListening,
+                      child: _buildCustomNavBar(context, state.index),
+                    ),
+                  ),
+                  Positioned(
+                    right: 20,
+                    bottom: 90,
+                    child: IgnorePointer(
+                      ignoring: _isListening,
+                      child: FloatingActionButton(
+                        heroTag: "stt_fab",
+                        onPressed: _startListeningWithTimer,
+                        child: Icon(Icons.mic),
+                        tooltip: "فعّل التنقل الصوتي",
+                      ),
+                    ),
+                  ),
+                  Semantics(
+                    excludeSemantics: true,
+                    child: Visibility(
+                      visible: false,
+                      child: Center(
+                        child: Text(
+                          "الأمر الصوتي: $_lastCommand",
+                          style: TextStyle(fontSize: 16, color: Colors.black),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
       ),
     );
   }
@@ -260,8 +300,8 @@ class _MainScreenState extends State<MainScreen> {
           children: [
             _navItem(context, Icons.home_outlined, 0, selectedIndex),
             _navItem(context, Icons.picture_as_pdf_outlined, 1, selectedIndex),
-            _navItem(context, Icons.history_outlined,  2, selectedIndex),
-            _navItem(context, Icons.compare_arrows_outlined,  3, selectedIndex),
+            _navItem(context, Icons.history_outlined, 2, selectedIndex),
+            _navItem(context, Icons.compare_arrows_outlined, 3, selectedIndex),
             _navItem(context, Icons.settings_outlined, 4, selectedIndex),
           ],
         ),
@@ -269,21 +309,51 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget _navItem(BuildContext context, IconData icon,  int index, int selectedIndex) {
+  Widget _navItem(
+      BuildContext context, IconData icon, int index, int selectedIndex) {
     final isSelected = index == selectedIndex;
-    return GestureDetector(
-      onTap: () => context.read<NavigationCubit>().changePage(index),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 32,
-            color: isSelected ? AppTheme.primary : Colors.grey,
-          ),
-          const SizedBox(height: 4),
-        ],
+    final labels = [
+      tr('home'),
+      tr('pdfreader'),
+      tr('history'),
+      tr('connectivity'),
+      tr('setting'),
+    ];
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: labels[index],
+      child: GestureDetector(
+        onTap: () => context.read<NavigationCubit>().changePage(index),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 32,
+              color: isSelected ? AppTheme.primary : Colors.grey,
+            ),
+            const SizedBox(height: 4),
+          ],
+        ),
       ),
     );
+  }
+}
+
+String _getPageTitle(int index) {
+  switch (index) {
+    case 0:
+      return "الرئيسية";
+    case 1:
+      return "القارئ";
+    case 2:
+      return "السجل";
+    case 3:
+      return "الاتصال";
+    case 4:
+      return "الإعدادات";
+    default:
+      return "";
   }
 }

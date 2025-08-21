@@ -1,6 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-
+import '../utils/announce_service.dart';
 import 'Profile_screen.dart';
 
 class SettingScreen extends StatefulWidget {
@@ -33,6 +33,7 @@ class _SettingScreenState extends State<SettingScreen> {
                 setState(() {
                   isArabic = true;
                 });
+                AnnounceService.announceLanguageChange(context, true);
               },
             ),
             ListTile(
@@ -43,6 +44,7 @@ class _SettingScreenState extends State<SettingScreen> {
                 setState(() {
                   isArabic = false;
                 });
+                AnnounceService.announceLanguageChange(context, false);
               },
             ),
           ],
@@ -59,17 +61,20 @@ class _SettingScreenState extends State<SettingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-
       body: SafeArea(
         child: Column(
           children: [
             const SizedBox(height: 20),
-            Text(
-              'setting'.tr(),
-              style: Theme.of(context).textTheme.titleLarge,
+            Semantics(
+              header: true,
+              label: 'setting'.tr(),
+              excludeSemantics: false,
+              child: Text(
+                'setting'.tr(),
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
             ),
             const SizedBox(height: 120),
-
             _buildSettingsOption(
               icon: Icons.person,
               text: 'profile'.tr(),
@@ -80,15 +85,13 @@ class _SettingScreenState extends State<SettingScreen> {
                 );
               },
             ),
-
-            // تغيير اللغة
             _buildSettingsOption(
               icon: Icons.language,
               text: 'switch_language'.tr(),
-              onTap: _changeLanguageDialog,
+              onTap: () {
+                _changeLanguageDialog();
+              },
             ),
-
-            // تسجيل الخروج
             _buildSettingsOption(
               icon: Icons.logout,
               text: 'logout'.tr(),

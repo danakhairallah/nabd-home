@@ -5,9 +5,13 @@ class Connectivity extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-        child: Text(
-      tr('connectivity'),
-      style: const TextStyle(fontSize: 24),
-    ));
+        child: Semantics(
+            header: true,
+            label: tr('connectivity'),
+            excludeSemantics: false,
+            child: Text(
+              tr('connectivity'),
+              style: const TextStyle(fontSize: 24),
+            )));
   }
 }

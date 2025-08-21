@@ -19,15 +19,20 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           children: [
             const SizedBox(height: 80),
-            Text(
-              tr('home'),
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+            Semantics(
+              header: true,
+              label: tr('home'),
+              child: Text(
+                tr('home'),
+                style: const TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
             ),
+
             const SizedBox(height: 180),
             const CircleAvatar(
               radius: 110,

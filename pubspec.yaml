@@ -18,6 +18,10 @@ dependencies:
   sensors_plus: ^5.0.1
 
 
+#  flutter_tts: ^3.8.5
+
+
+
 
 
   flutter_localizations:

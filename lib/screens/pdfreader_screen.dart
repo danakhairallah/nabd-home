@@ -5,9 +5,14 @@ class PdfReaderScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-        child: Text(
-      tr('pdfreader'),
-      style: const TextStyle(fontSize: 24),
+        child: Semantics(
+      header: true,
+      label: tr('pdfreader'),
+      excludeSemantics: false,
+      child: Text(
+        tr('pdfreader'),
+        style: const TextStyle(fontSize: 24),
+      ),
     ));
   }
 }

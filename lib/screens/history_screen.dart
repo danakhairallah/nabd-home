@@ -5,9 +5,13 @@ class HistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-        child: Text(
-      tr('history'),
-      style: const TextStyle(fontSize: 24),
-    ));
+        child: Semantics(
+            header: true,
+            label: tr('history'),
+            excludeSemantics: false,
+            child: Text(
+              tr('history'),
+              style: const TextStyle(fontSize: 24),
+            )));
   }
 }
